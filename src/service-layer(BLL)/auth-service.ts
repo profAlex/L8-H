@@ -71,7 +71,7 @@ export const authService = {
             };
         }
 
-        const resultedToken = await jwtService.createToken({ userId: user.id });
+        const resultedToken = await jwtService.createToken({userId: user.id});
 
         return resultedToken;
     },

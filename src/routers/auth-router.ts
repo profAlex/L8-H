@@ -8,7 +8,7 @@ import {
     attemptToLogin,
     provideUserInfo, registrationAttemptByUser, registrationConfirmation, resendRegistrationConfirmation
 } from "./router-handlers/auth-router-description";
-import { tokenGuardVerification } from "./guard-middleware/token-guard";
+import { accessTokenGuard } from "./guard-middleware/token-guard";
 import {
     registrationConfirmationValidator,
     registrationResentConfirmationValidator
@@ -53,6 +53,11 @@ authRouter.post(
 // Get information about current user
 authRouter.get(
     "/me",
-    tokenGuardVerification,
+    accessTokenGuard,
     provideUserInfo
 );
+
+// Generate new pair of access and refresh tokens (in cookie client must send correct refreshToken that will be revoked after refreshing)
+authRouter.post("/refresh-token");
+
+authRouter.post("/logout");

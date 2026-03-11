@@ -23,7 +23,7 @@ import {
     CommentsSortListEnum,
     PostsSortListEnum,
 } from "./util-enums/fields-for-sorting";
-import { tokenGuardVerification } from "./guard-middleware/token-guard";
+import { accessTokenGuard } from "./guard-middleware/token-guard";
 import { commentInputModelValidation } from "./validation-middleware/comment-input-model-validation";
 
 export const postsRouter = Router();
@@ -36,7 +36,7 @@ const validateParameterPostId = createIdValidator(
 // creates new comment
 postsRouter.post(
     `/:${IdParamName.PostId}/comments`,
-    tokenGuardVerification,
+    accessTokenGuard,
     validateParameterPostId,
     commentInputModelValidation,
     inputErrorManagementMiddleware,

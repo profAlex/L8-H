@@ -13,9 +13,11 @@ import { testingRouter } from "./routers/testing-router";
 import { authRouter } from "./routers/auth-router";
 import { usersRouter } from "./routers/users-router";
 import { commentsRouter } from "./routers/comments-router";
+import cookieParser from "cookie-parser";
 
 export const setupApp = (app: Express) => {
     app.use(express.json());
+    app.use(cookieParser());
 
     app.use(BLOGS_PATH, blogsRouter);
     app.use(POSTS_PATH, postsRouter);

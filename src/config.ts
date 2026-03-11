@@ -5,20 +5,30 @@ import "dotenv/config";
 
 // дефолтные значения параметров
 const DEFAULT_PORT = "3003";
-const DEFAULT_JWT_EXPIRES_IN = "60";
+const DEFAULT_ACCESS_TOKEN_SECRET = "ryuas235GCPHvlt347782uzHBSDuw4hr";
+const DEFAULT_REFRESH_TOKEN_SECRET = "ryuas235GCPHvlt347782uzHBSDuw4hr";
+const DEFAULT_ACCESS_TOKEN_LIFETIME = "10"; // mins
+const DEFAULT_REFRESH_TOKEN_LIFETIME = "20"; // days
+
+const DEFAULT_COOKIE_DOMAIN = "localhost";
+const DEFAULT_COOKIE_SECURE = true;
 
 // структура конфигурационных значений
 type Config = {
     appPort: number;
-    jwtSecret: string;
-    jwtExpiresIn: number;
+    accessTokenSecret: string;
+    refreshTokenSecret: string;
+    accessTokenLifetime: number;
+    refreshTokenLifetime: number;
 };
 
 // парсинг значений
 const getConfig = (): Config => {
     let appPort = process.env.PORT;
-    let jwtSecret = process.env.JWT_SECRET;
-    let jwtExpiresIn = process.env.JWT_EXPIRES_IN;
+    let accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
+    let refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
+    let accessTokenLifetime = process.env.ACCESS_TOKEN_LIFETIME;
+    let refreshTokenLifetime = process.env.REFRESH_TOKEN_LIFETIME;
 
     // валидация
     if (!appPort) {
@@ -28,25 +38,41 @@ const getConfig = (): Config => {
         appPort = DEFAULT_PORT;
     }
 
-    if (!jwtExpiresIn) {
+    // if (!accessJwtSecret) throw new Error("JWT_SECRET is required in .env");
+    if (!accessTokenSecret) {
         console.warn(
-            `JWT_EXPIRES_IN is not defined in .env! Applied default port number: ${DEFAULT_JWT_EXPIRES_IN}.`,
+            "ACCESS_TOKEN_SECRET is not defined in .env! Applied default value.",
         );
-        jwtExpiresIn = DEFAULT_PORT;
+        accessTokenSecret = DEFAULT_ACCESS_TOKEN_SECRET;
     }
 
-    // if (!jwtSecret) throw new Error("JWT_SECRET is required in .env");
-    if (!jwtSecret) {
+    if (!refreshTokenSecret) {
         console.warn(
-            "JWT_SECRET is not defined in .env! Applied default value.",
+            "REFRESH_TOKEN_SECRET is not defined in .env! Applied default value.",
         );
-        jwtSecret = "ryuas235GCPHvlt347782uzHBSDuw4hr";
+        refreshTokenSecret = DEFAULT_REFRESH_TOKEN_SECRET;
+    }
+
+    if (!accessTokenLifetime) {
+        console.warn(
+            `ACCESS_TOKEN_LIFETIME is not defined in .env! Applied default value (seconds) (: ${DEFAULT_ACCESS_TOKEN_LIFETIME}.`,
+        );
+        accessTokenLifetime = DEFAULT_ACCESS_TOKEN_LIFETIME;
+    }
+
+    if (!refreshTokenLifetime) {
+        console.warn(
+            `REFRESH_TOKEN_LIFETIME is not defined in .env! Applied default value (seconds): ${DEFAULT_REFRESH_TOKEN_LIFETIME}.`,
+        );
+        refreshTokenLifetime = DEFAULT_REFRESH_TOKEN_LIFETIME;
     }
 
     return {
         appPort: parseInt(appPort, 10),
-        jwtSecret,
-        jwtExpiresIn: parseInt(jwtExpiresIn, 10),
+        accessTokenSecret: accessTokenSecret,
+        refreshTokenSecret: refreshTokenSecret,
+        accessTokenLifetime: parseInt(accessTokenLifetime, 10),
+        refreshTokenLifetime: parseInt(refreshTokenLifetime, 10),
     };
 };
 

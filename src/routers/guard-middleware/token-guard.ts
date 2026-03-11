@@ -8,7 +8,7 @@ import { HttpStatus } from "../../common/http-statuses/http-statuses";
 import { JwtPayloadType } from "../../adapters/verification/payload-type";
 import { jwtService } from "../../adapters/verification/jwt-service";
 
-export const tokenGuardVerification = async (
+export const accessTokenGuard = async (
     req: Request,
     res: Response,
     next: NextFunction,
@@ -32,6 +32,7 @@ export const tokenGuardVerification = async (
             error: `Field req.headers.authorization has improper format`,
         });
 
-    req.user = { userId: payload.userId } as UserIdType;
+    req.user = { userId: payload.userId };
+
     return next();
 };

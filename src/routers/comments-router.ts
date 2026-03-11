@@ -9,7 +9,7 @@ import {
     getCommentById,
     updateCommentById,
 } from "./router-handlers/comment-router-description";
-import { tokenGuardVerification } from "./guard-middleware/token-guard";
+import { accessTokenGuard } from "./guard-middleware/token-guard";
 
 export const commentsRouter = Router();
 
@@ -28,7 +28,7 @@ commentsRouter.get(
 
 commentsRouter.put(
     `/:${IdParamName.CommentId}`,
-    tokenGuardVerification,
+    accessTokenGuard,
     validateParameterCommentId,
     commentInputModelValidation,
     inputErrorManagementMiddleware,
@@ -37,7 +37,7 @@ commentsRouter.put(
 
 commentsRouter.delete(
     `/:${IdParamName.CommentId}`,
-    tokenGuardVerification,
+    accessTokenGuard,
     validateParameterCommentId,
     deleteCommentById,
 );

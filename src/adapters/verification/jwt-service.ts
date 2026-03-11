@@ -69,13 +69,13 @@ export const jwtService = {
     async verifyToken(token: string): Promise<JwtPayloadType | null> {
         try {
             return jwt.verify(token, envConfig.jwtSecret) as JwtPayloadType;
-        } catch (e: unknown) {
-            if (e instanceof Error) {
-                console.error("Token verification error with JWT service: ", e);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                console.error("Token verification error with JWT service: ", err);
             } else {
                 console.error(
                     "Unknown error with JWT verification service: ",
-                    e,
+                    err,
                 );
             }
             return null;
