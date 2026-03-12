@@ -12,15 +12,12 @@ export const jwtService = {
         payload: JwtPayloadType,
     ): Promise<CustomResult<AccessTokenModel>> {
         if (!payload.userId) {
-            console.error(
-                "userID is missing",
-            );
+            console.error("userID is missing");
 
             return {
                 data: null,
                 statusCode: HttpStatus.InternalServerError,
-                statusDescription:
-                    "userID is missing",
+                statusDescription: "userID is missing",
                 errorsMessages: [
                     {
                         field: "createAccessToken -> if (!payload.userId)",
@@ -64,15 +61,12 @@ export const jwtService = {
         payload: JwtPayloadType,
     ): Promise<CustomResult<RefreshTokenModel>> {
         if (!payload.userId) {
-            console.error(
-                "userID is missing",
-            );
+            console.error("userID is missing");
 
             return {
                 data: null,
                 statusCode: HttpStatus.InternalServerError,
-                statusDescription:
-                    "userID is missing",
+                statusDescription: "userID is missing",
                 errorsMessages: [
                     {
                         field: "createRefreshToken -> if (!payload.userId)",
@@ -124,25 +118,61 @@ export const jwtService = {
         }
     },
 
-    async verifyToken(token: string): Promise<JwtPayloadType | null> {
+    async verifyAccessToken(token: string): Promise<JwtPayloadType | null> {
         try {
             return jwt.verify(
                 token,
                 envConfig.accessTokenSecret,
             ) as JwtPayloadType;
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                console.error(
-                    "Token verification error with JWT service: ",
-                    err,
-                );
+        } catch (error) {
+            if (error instanceof jwt.JsonWebTokenError) {
+                switch (error.name) {
+                    case "TokenExpiredError":
+                        console.warn(
+                            "Access JWT is expired. Date of expiration:",
+                            (error as jwt.TokenExpiredError).expiredAt,
+                        );
+                        break;
+                    default:
+                        console.warn("Error with Access JWT:", error.name, error.message);
+                }
+                return null;
             } else {
-                console.error(
+                console.warn(
                     "Unknown error with JWT verification service: ",
-                    err,
+                    error,
                 );
+                return null;
             }
-            return null;
+        }
+    },
+
+    async verifyRefreshToken(token: string): Promise<JwtPayloadType | null> {
+        try {
+            return jwt.verify(
+                token,
+                envConfig.refreshTokenSecret,
+            ) as JwtPayloadType;
+        } catch (error) {
+            if (error instanceof jwt.JsonWebTokenError) {
+                switch (error.name) {
+                    case "TokenExpiredError":
+                        console.warn(
+                            "Access JWT is expired. Date of expiration:",
+                            (error as jwt.TokenExpiredError).expiredAt,
+                        );
+                        break;
+                    default:
+                        console.warn("Error with Access JWT:", error.name, error.message);
+                }
+                return null;
+            } else {
+                console.warn(
+                    "Unknown error with JWT verification service: ",
+                    error,
+                );
+                return null;
+            }
         }
     },
 };

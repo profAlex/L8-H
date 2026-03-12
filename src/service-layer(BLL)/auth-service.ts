@@ -16,6 +16,7 @@ import {
 } from "../adapters/email-sender/mailer-service";
 import { RotationPairToken } from "../adapters/verification/auth-token-rotation-pair";
 
+
 export const authService = {
     async loginUser(
         loginOrEmail: string,
@@ -101,6 +102,7 @@ export const authService = {
             data: {
                 accessToken: resCreatingAccessToken.data.accessToken,
                 refreshToken: resCreatingRefreshToken.data.refreshToken,
+                relatedUserId: user.id,
             },
             statusCode: HttpStatus.Ok,
             statusDescription: "",

@@ -37,7 +37,10 @@ export const attemptToLogin = async (
             .send({ errorsMessages: loginResult.errorsMessages });
     }
 
-    const { accessToken, refreshToken } = loginResult.data;
+    const { accessToken, refreshToken, relatedUserId} = loginResult.data;
+
+    // !!!! здесь занесение в черный список пары {refreshToken, relatedUserId}
+
     res.cookie(refreshToken, refreshToken, { httpOnly: true, secure: true } );
 
     return res.status(HttpStatus.Ok).send({accessToken: accessToken});

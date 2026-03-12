@@ -23,7 +23,7 @@ export let bloggersCollection: Collection<BlogViewModel>;
 export let postsCollection: Collection<PostViewModel>;
 export let usersCollection: Collection<UserCollectionStorageModel>;
 export let commentsCollection: Collection<CommentStorageModel>;
-export let refreshTokensBlackList: Collection<RefreshTokensStorageModel>;
+export let refreshTokensBlackListCollection: Collection<RefreshTokensStorageModel>;
 
 export async function runDB() {
     client = new MongoClient(URI);
@@ -37,11 +37,11 @@ export async function runDB() {
     commentsCollection = db.collection<CommentStorageModel>(
         COMMENTS_COLLECTION_NAME,
     );
-    refreshTokensBlackList = db.collection<RefreshTokensStorageModel>(
+    refreshTokensBlackListCollection = db.collection<RefreshTokensStorageModel>(
         REFRESH_TOKENS_COLLECTION_NAME,
     );
     // настройка автоудаления токенов
-    await refreshTokensBlackList.createIndex(
+    await refreshTokensBlackListCollection.createIndex(
         { refreshToken: 1 }, // поле для индексации
         {
             // unique: true,  // это лишнее, не ускоряет поиск по индексированному полю, это просто встроенная провекра на уникальность, для нашего случая помоему излишне

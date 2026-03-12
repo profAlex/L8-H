@@ -25,11 +25,11 @@ export const accessTokenGuard = async (
 
     const sentToken = req.headers.authorization.split(" ")[1];
     const payload: JwtPayloadType | null =
-        await jwtService.verifyToken(sentToken);
+        await jwtService.verifyAccessToken(sentToken);
 
     if (!payload)
         return res.status(HttpStatus.Unauthorized).json({
-            error: `Field req.headers.authorization has improper format`,
+            error: `Improper access token format`,
         });
 
     req.user = { userId: payload.userId };
