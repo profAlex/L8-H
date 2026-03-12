@@ -4,7 +4,7 @@ import { PostInputModel } from "../../routers/router-types/post-input-model";
 import {
     bloggersCollection,
     commentsCollection,
-    postsCollection,
+    postsCollection, refreshTokensBlackList,
     usersCollection
 } from "../../db/mongo.db";
 import { ObjectId } from "mongodb";
@@ -1170,5 +1170,6 @@ export const dataCommandRepository = {
         await postsCollection.deleteMany({});
         await usersCollection.deleteMany({});
         await commentsCollection.deleteMany({});
+        await refreshTokensBlackList.deleteMany({});
     }
 };

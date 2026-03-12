@@ -4,35 +4,40 @@ import { JwtPayloadType } from "./payload-type";
 import { token } from "./token-type";
 import { HttpStatus } from "../../common/http-statuses/http-statuses";
 import { CustomResult } from "../../common/result-type/result-type";
-import { LoginSuccessViewModel } from "./auth-success-login-model";
+import { AccessTokenModel } from "./auth-access-token-model";
+import { RefreshTokenModel } from "./auth-refresh-token-model";
 
 export const jwtService = {
-    async createToken(
+    async createAccessToken(
         payload: JwtPayloadType,
-    ): Promise<CustomResult<LoginSuccessViewModel>> {
+    ): Promise<CustomResult<AccessTokenModel>> {
         if (!payload.userId) {
             console.error(
-                "Failed attempt to check credentials login or password",
+                "userID is missing",
             );
 
             return {
                 data: null,
                 statusCode: HttpStatus.InternalServerError,
                 statusDescription:
-                    "Failed attempt to check credentials login or password",
+                    "userID is missing",
                 errorsMessages: [
                     {
-                        field: "createToken -> if (!payload.userId)",
+                        field: "createAccessToken -> if (!payload.userId)",
                         message: "userId is empty",
                     },
                 ],
-            } as CustomResult<LoginSuccessViewModel>;
+            };
         }
 
         try {
-            const resultedToken = jwt.sign(payload, envConfig.jwtSecret, {
-                expiresIn: envConfig.jwtExpiresIn,
-            });
+            const resultedToken = jwt.sign(
+                payload,
+                envConfig.accessTokenSecret,
+                {
+                    expiresIn: envConfig.accessTokenLifetime,
+                },
+            );
 
             return {
                 data: { accessToken: resultedToken },
@@ -40,20 +45,73 @@ export const jwtService = {
                 errorsMessages: [{ field: null, message: null }],
             };
         } catch (e: unknown) {
-            console.error("Can't sign with JWT service: ", e);
+            console.error("Can't sign accessToken with JWT service: ", e);
+            return {
+                data: null,
+                statusCode: HttpStatus.InternalServerError,
+                statusDescription: "Can't sign accessToken with JWT service",
+                errorsMessages: [
+                    {
+                        field: "inside async createAccessToken",
+                        message: "Unknown error",
+                    },
+                ],
+            };
+        }
+    },
+
+    async createRefreshToken(
+        payload: JwtPayloadType,
+    ): Promise<CustomResult<RefreshTokenModel>> {
+        if (!payload.userId) {
+            console.error(
+                "userID is missing",
+            );
+
             return {
                 data: null,
                 statusCode: HttpStatus.InternalServerError,
                 statusDescription:
-                    "Failed attempt to check credentials login or password",
+                    "userID is missing",
                 errorsMessages: [
                     {
-                        field: "createToken -> jwt.sign()",
-                        message:
-                            "Unknown error while attempting to sign payload",
+                        field: "createRefreshToken -> if (!payload.userId)",
+                        message: "userId is empty",
                     },
                 ],
-            } as CustomResult<LoginSuccessViewModel>;
+            };
+        }
+
+        try {
+            const resultedToken = jwt.sign(
+                payload,
+                envConfig.refreshTokenSecret,
+                {
+                    expiresIn: envConfig.refreshTokenLifetime,
+                },
+            );
+
+            return {
+                data: {
+                    refreshToken: resultedToken,
+                    relatedUserId: payload.userId,
+                },
+                statusCode: HttpStatus.NoContent,
+                errorsMessages: [{ field: null, message: null }],
+            };
+        } catch (e: unknown) {
+            console.error("Can't sign refreshToken with JWT service: ", e);
+            return {
+                data: null,
+                statusCode: HttpStatus.InternalServerError,
+                statusDescription: "Can't sign refreshToken with JWT service",
+                errorsMessages: [
+                    {
+                        field: "inside async createRefreshToken",
+                        message: "Unknown error",
+                    },
+                ],
+            };
         }
     },
 
@@ -68,10 +126,16 @@ export const jwtService = {
 
     async verifyToken(token: string): Promise<JwtPayloadType | null> {
         try {
-            return jwt.verify(token, envConfig.jwtSecret) as JwtPayloadType;
+            return jwt.verify(
+                token,
+                envConfig.accessTokenSecret,
+            ) as JwtPayloadType;
         } catch (err: unknown) {
             if (err instanceof Error) {
-                console.error("Token verification error with JWT service: ", err);
+                console.error(
+                    "Token verification error with JWT service: ",
+                    err,
+                );
             } else {
                 console.error(
                     "Unknown error with JWT verification service: ",

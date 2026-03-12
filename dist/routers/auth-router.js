@@ -17,4 +17,7 @@ exports.authRouter.post("/registration", UserInputModel_validation_middleware_1.
 // Resend Registration confirmation email
 exports.authRouter.post("/registration-email-resending", auth_router_general_middleware_validator_1.registrationResentConfirmationValidator, error_management_validation_middleware_1.inputErrorManagementMiddleware, auth_router_description_1.resendRegistrationConfirmation);
 // Get information about current user
-exports.authRouter.get("/me", token_guard_1.tokenGuardVerification, auth_router_description_1.provideUserInfo);
+exports.authRouter.get("/me", token_guard_1.accessTokenGuard, auth_router_description_1.provideUserInfo);
+// Generate new pair of access and refresh tokens (in cookie client must send correct refreshToken that will be revoked after refreshing)
+exports.authRouter.post("/refresh-token");
+exports.authRouter.post("/logout");

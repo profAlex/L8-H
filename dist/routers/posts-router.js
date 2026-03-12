@@ -16,7 +16,7 @@ const comment_input_model_validation_1 = require("./validation-middleware/commen
 exports.postsRouter = (0, express_1.Router)();
 const validateParameterPostId = (0, id_verification_and_validation_1.createIdValidator)(id_names_1.IdParamName.PostId, collection_names_1.CollectionNames.Posts);
 // creates new comment
-exports.postsRouter.post(`/:${id_names_1.IdParamName.PostId}/comments`, token_guard_1.tokenGuardVerification, validateParameterPostId, comment_input_model_validation_1.commentInputModelValidation, error_management_validation_middleware_1.inputErrorManagementMiddleware, post_router_description_1.createNewComment);
+exports.postsRouter.post(`/:${id_names_1.IdParamName.PostId}/comments`, token_guard_1.accessTokenGuard, validateParameterPostId, comment_input_model_validation_1.commentInputModelValidation, error_management_validation_middleware_1.inputErrorManagementMiddleware, post_router_description_1.createNewComment);
 // requests a list of comments for specified postId
 exports.postsRouter.get(`/:${id_names_1.IdParamName.PostId}/comments`, validateParameterPostId, (0, pagination_validators_1.inputPaginationValidatorForComments)(fields_for_sorting_1.CommentsSortListEnum), error_management_validation_middleware_1.inputErrorManagementMiddleware, post_router_description_1.getSeveralCommentsByPostId);
 // Returns all posts

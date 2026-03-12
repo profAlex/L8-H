@@ -9,10 +9,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.tokenGuardVerification = void 0;
+exports.accessTokenGuard = void 0;
 const http_statuses_1 = require("../../common/http-statuses/http-statuses");
 const jwt_service_1 = require("../../adapters/verification/jwt-service");
-const tokenGuardVerification = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+const accessTokenGuard = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     if (!req.headers.authorization)
         return res.status(http_statuses_1.HttpStatus.Unauthorized).json({
             error: `Field req.headers.authorization has improper format`,
@@ -30,4 +30,4 @@ const tokenGuardVerification = (req, res, next) => __awaiter(void 0, void 0, voi
     req.user = { userId: payload.userId };
     return next();
 });
-exports.tokenGuardVerification = tokenGuardVerification;
+exports.accessTokenGuard = accessTokenGuard;

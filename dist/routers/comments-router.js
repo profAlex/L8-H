@@ -14,5 +14,5 @@ const validateParameterCommentId = (0, id_verification_and_validation_1.createId
 exports.commentsRouter.get(`/:${id_names_1.IdParamName.CommentId}`, validateParameterCommentId, 
 //commentInputModelValidation,
 error_management_validation_middleware_1.inputErrorManagementMiddleware, comment_router_description_1.getCommentById);
-exports.commentsRouter.put(`/:${id_names_1.IdParamName.CommentId}`, token_guard_1.tokenGuardVerification, validateParameterCommentId, comment_input_model_validation_1.commentInputModelValidation, error_management_validation_middleware_1.inputErrorManagementMiddleware, comment_router_description_1.updateCommentById);
-exports.commentsRouter.delete(`/:${id_names_1.IdParamName.CommentId}`, token_guard_1.tokenGuardVerification, validateParameterCommentId, comment_router_description_1.deleteCommentById);
+exports.commentsRouter.put(`/:${id_names_1.IdParamName.CommentId}`, token_guard_1.accessTokenGuard, validateParameterCommentId, comment_input_model_validation_1.commentInputModelValidation, error_management_validation_middleware_1.inputErrorManagementMiddleware, comment_router_description_1.updateCommentById);
+exports.commentsRouter.delete(`/:${id_names_1.IdParamName.CommentId}`, token_guard_1.accessTokenGuard, validateParameterCommentId, comment_router_description_1.deleteCommentById);

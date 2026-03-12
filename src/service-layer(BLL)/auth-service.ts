@@ -2,27 +2,25 @@ import { dataQueryRepository } from "../repository-layers/query-repository-layer
 import { bcryptService } from "../adapters/authentication/bcrypt-service";
 import { jwtService } from "../adapters/verification/jwt-service";
 import { CustomResult } from "../common/result-type/result-type";
-import { JwtPayloadType } from "../adapters/verification/payload-type";
 import { HttpStatus } from "../common/http-statuses/http-statuses";
-import { token } from "../adapters/verification/token-type";
-import { LoginSuccessViewModel } from "../adapters/verification/auth-success-login-model";
+import { AccessTokenModel } from "../adapters/verification/auth-access-token-model";
 import { RegistrationUserInputModel } from "../routers/router-types/auth-registration-input-model";
 import { dataCommandRepository } from "../repository-layers/command-repository-layer/command-repository";
 import { RegistrationConfirmationInput } from "../routers/router-types/auth-registration-confirmation-input-model";
-import {
-    ResentRegistrationConfirmationInput
-} from "../routers/router-types/auth-resent-registration-confirmation-input-model";
+import { ResentRegistrationConfirmationInput } from "../routers/router-types/auth-resent-registration-confirmation-input-model";
 import { ObjectId } from "mongodb";
 import { User } from "../common/classes/user-class";
-import { emailExamples, mailerService } from "../adapters/email-sender/mailer-service";
-
-
+import {
+    emailExamples,
+    mailerService,
+} from "../adapters/email-sender/mailer-service";
+import { RotationPairToken } from "../adapters/verification/auth-token-rotation-pair";
 
 export const authService = {
     async loginUser(
         loginOrEmail: string,
-        password: string
-    ): Promise<CustomResult<LoginSuccessViewModel>> {
+        password: string,
+    ): Promise<CustomResult<RotationPairToken>> {
         const user = await dataQueryRepository.findByLoginOrEmail(loginOrEmail);
 
         if (!user)
@@ -33,14 +31,14 @@ export const authService = {
                 errorsMessages: [
                     {
                         field: "dataQueryRepository.findByLoginOrEmail", // это служебная и отладочная информация, к ней НЕ должен иметь доступ фронтенд, обрабатываем внутри периметра работы бэкэнда
-                        message: "Wrong login or password"
-                    }
-                ]
+                        message: "Wrong login or password",
+                    },
+                ],
             };
 
         const isCorrectCredentials = await this.checkUserCredentials(
             password,
-            user.passwordHash
+            user.passwordHash,
         );
 
         if (isCorrectCredentials === false) {
@@ -51,9 +49,9 @@ export const authService = {
                 errorsMessages: [
                     {
                         field: "loginUser -> checkUserCredentials",
-                        message: "Wrong login or password"
-                    }
-                ]
+                        message: "Wrong login or password",
+                    },
+                ],
             };
         } else if (isCorrectCredentials === null) {
             return {
@@ -65,25 +63,64 @@ export const authService = {
                     {
                         field: "loginUser -> checkUserCredentials",
                         message:
-                            "Failed attempt to check credentials login or password"
-                    }
-                ]
+                            "Failed attempt to check credentials login or password",
+                    },
+                ],
             };
         }
 
-        const resultedToken = await jwtService.createToken({userId: user.id});
+        // пробуем создать accessToken
+        const resCreatingAccessToken = await jwtService.createAccessToken({
+            userId: user.id,
+        });
+        if (!resCreatingAccessToken.data?.accessToken) {
+            console.error(resCreatingAccessToken.statusDescription);
+            return {
+                data: null,
+                statusCode: resCreatingAccessToken.statusCode,
+                statusDescription: resCreatingAccessToken.statusDescription,
+                errorsMessages: resCreatingAccessToken.errorsMessages,
+            };
+        }
 
-        return resultedToken;
+        // пробуем создать refreshToken
+        const resCreatingRefreshToken = await jwtService.createRefreshToken({
+            userId: user.id,
+        });
+        if (!resCreatingRefreshToken.data?.refreshToken) {
+            console.error(resCreatingRefreshToken.statusDescription);
+            return {
+                data: null,
+                statusCode: resCreatingAccessToken.statusCode,
+                statusDescription: resCreatingAccessToken.statusDescription,
+                errorsMessages: resCreatingAccessToken.errorsMessages,
+            };
+        }
+
+        return {
+            data: {
+                accessToken: resCreatingAccessToken.data.accessToken,
+                refreshToken: resCreatingRefreshToken.data.refreshToken,
+            },
+            statusCode: HttpStatus.Ok,
+            statusDescription: "",
+            errorsMessages: [
+                {
+                    field: "",
+                    message: "",
+                },
+            ],
+        };
     },
 
     // пробуем зарегистрировать возвращенный от юзера код подтверждения
     async confirmRegistrationCode(
-        sentData: RegistrationConfirmationInput
+        sentData: RegistrationConfirmationInput,
     ): Promise<CustomResult> {
         try {
-
-            return await dataCommandRepository.confirmRegistrationCode(sentData);
-
+            return await dataCommandRepository.confirmRegistrationCode(
+                sentData,
+            );
         } catch (error) {
             return {
                 data: null,
@@ -93,23 +130,22 @@ export const authService = {
                 errorsMessages: [
                     {
                         field: "",
-                        message: "Unknown error"
-                    }
-                ]
+                        message: "Unknown error",
+                    },
+                ],
             };
         }
-
     },
-
 
     // пробуем зарегистрировать пользователя по его запросу (т.е. по запросу фронта)
     async registerNewUser(
-        sentData: RegistrationUserInputModel
+        sentData: RegistrationUserInputModel,
     ): Promise<CustomResult> {
         try {
-
-            const ifUserLoginExists = await dataCommandRepository.findByLoginOrEmail(sentData.login);
-            const ifUserEmailExists = await dataCommandRepository.findByLoginOrEmail(sentData.email);
+            const ifUserLoginExists =
+                await dataCommandRepository.findByLoginOrEmail(sentData.login);
+            const ifUserEmailExists =
+                await dataCommandRepository.findByLoginOrEmail(sentData.email);
 
             if (ifUserLoginExists) {
                 return {
@@ -120,9 +156,9 @@ export const authService = {
                     errorsMessages: [
                         {
                             field: "login",
-                            message: "Email or Login already exists!!!"
-                        }
-                    ]
+                            message: "Email or Login already exists!!!",
+                        },
+                    ],
                 };
             }
 
@@ -135,14 +171,14 @@ export const authService = {
                     errorsMessages: [
                         {
                             field: "email",
-                            message: "Email or Login already exists!!!"
-                        }
-                    ]
+                            message: "Email or Login already exists!!!",
+                        },
+                    ],
                 };
             }
 
             const passwordHash = await bcryptService.generateHash(
-                sentData.password
+                sentData.password,
             );
 
             if (!passwordHash) {
@@ -153,9 +189,9 @@ export const authService = {
                     errorsMessages: [
                         {
                             field: "bcryptService.generateHash",
-                            message: "Generating hash error"
-                        }
-                    ]
+                            message: "Generating hash error",
+                        },
+                    ],
                 };
             }
 
@@ -179,17 +215,18 @@ export const authService = {
                 sentData.login,
                 sentData.email,
                 passwordHash,
-                tempId
+                tempId,
             );
 
-            const newUserInsertionResult = await dataCommandRepository.registerNewUser(newUserEntry);
+            const newUserInsertionResult =
+                await dataCommandRepository.registerNewUser(newUserEntry);
 
-            if(newUserInsertionResult.statusCode !== HttpStatus.Ok ) {
+            if (newUserInsertionResult.statusCode !== HttpStatus.Ok) {
                 return {
                     data: newUserInsertionResult.data,
                     statusCode: newUserInsertionResult.statusCode,
                     statusDescription: newUserInsertionResult.statusDescription,
-                    errorsMessages: newUserInsertionResult.errorsMessages
+                    errorsMessages: newUserInsertionResult.errorsMessages,
                 };
             }
 
@@ -201,17 +238,22 @@ export const authService = {
             // а если письмо просто потерялось или юзер тупит - для нас это может быть куча лишней работы по обслуживанию непонятно чего
             // так что во втором случае пусть юзер сам лучше на себя возьмет это работу - просто повторно отправит если что запррос, нам главно оптимально подобрать период удалления неподтвержденных данных (минут 15-30)
 
-            const sendingResult = await mailerService.sendConfirmationRegisterEmail(
-                "\"Alex St\" <geniusb198@yandex.ru>",
-                newUserEntry.email,
-                newUserEntry.emailConfirmation.confirmationCode,
-                emailExamples.registrationEmail
-            );
+            const sendingResult =
+                await mailerService.sendConfirmationRegisterEmail(
+                    '"Alex St" <geniusb198@yandex.ru>',
+                    newUserEntry.email,
+                    newUserEntry.emailConfirmation.confirmationCode,
+                    emailExamples.registrationEmail,
+                );
 
-            let status = "Sending went without problems, awaiting confirmation form user";
+            let status =
+                "Sending went without problems, awaiting confirmation form user";
             if (!sendingResult) {
-                console.error("Something went wrong while sending the registration email");
-                status = "Something went wrong while sending the registration email";
+                console.error(
+                    "Something went wrong while sending the registration email",
+                );
+                status =
+                    "Something went wrong while sending the registration email";
             }
 
             // отправка результата что все ОК
@@ -222,11 +264,10 @@ export const authService = {
                 errorsMessages: [
                     {
                         field: "",
-                        message: ""
-                    }
-                ]
+                        message: "",
+                    },
+                ],
             };
-
         } catch (error) {
             return {
                 data: null,
@@ -236,20 +277,21 @@ export const authService = {
                 errorsMessages: [
                     {
                         field: "",
-                        message: "Unknown error"
-                    }
-                ]
+                        message: "Unknown error",
+                    },
+                ],
             };
         }
     },
 
-
     async resendConfirmRegistrationCode(
-        sentData: ResentRegistrationConfirmationInput
+        sentData: ResentRegistrationConfirmationInput,
     ): Promise<CustomResult> {
         try {
-
-            const isUserInDatabase = await dataCommandRepository.findNotConfirmedByEmail(sentData.email);
+            const isUserInDatabase =
+                await dataCommandRepository.findNotConfirmedByEmail(
+                    sentData.email,
+                );
 
             if (!isUserInDatabase) {
                 return {
@@ -260,14 +302,16 @@ export const authService = {
                     errorsMessages: [
                         {
                             field: "email",
-                            message: "Email doesn't exist or already confirmed"
-                        }
-                    ]
+                            message: "Email doesn't exist or already confirmed",
+                        },
+                    ],
                 };
             }
 
-            return await dataCommandRepository.resendConfirmRegistrationCode(sentData, isUserInDatabase);
-
+            return await dataCommandRepository.resendConfirmRegistrationCode(
+                sentData,
+                isUserInDatabase,
+            );
         } catch (error) {
             return {
                 data: null,
@@ -277,23 +321,18 @@ export const authService = {
                 errorsMessages: [
                     {
                         field: "",
-                        message: "Unknown error"
-                    }
-                ]
+                        message: "Unknown error",
+                    },
+                ],
             };
         }
-
     },
-
 
     // вспомогательная функция
     async checkUserCredentials(
         password: string,
-        passwordHash: string
+        passwordHash: string,
     ): Promise<boolean | null> {
-        return bcryptService.checkPassword(
-            password,
-            passwordHash
-        );
-    }
+        return bcryptService.checkPassword(password, passwordHash);
+    },
 };
