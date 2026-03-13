@@ -2,19 +2,23 @@ import { Router } from "express";
 import { inputErrorManagementMiddleware } from "./validation-middleware/error-management-validation-middleware";
 import {
     loginInputModelValidation,
-    userInputModelValidation
+    userInputModelValidation,
 } from "./validation-middleware/UserInputModel-validation-middleware";
 import {
     attemptToLogin,
-    provideUserInfo, registrationAttemptByUser, registrationConfirmation, resendRegistrationConfirmation
+    logoutOnDemand,
+    provideUserInfo,
+    refreshTokenOnDemand,
+    registrationAttemptByUser,
+    registrationConfirmation,
+    resendRegistrationConfirmation,
 } from "./router-handlers/auth-router-description";
-import { accessTokenGuard } from "./guard-middleware/token-guard";
+import { accessTokenGuard } from "./guard-middleware/access-token-guard";
 import {
     registrationConfirmationValidator,
-    registrationResentConfirmationValidator
+    registrationResentConfirmationValidator,
 } from "./validation-middleware/auth-router-general-middleware-validator";
-
-
+import { refreshTokenGuard } from "./guard-middleware/refresh-token-guard";
 
 export const authRouter = Router();
 
@@ -23,7 +27,7 @@ authRouter.post(
     "/login",
     loginInputModelValidation,
     inputErrorManagementMiddleware,
-    attemptToLogin
+    attemptToLogin,
 );
 
 // Confirm registration
@@ -31,7 +35,7 @@ authRouter.post(
     "/registration-confirmation",
     registrationConfirmationValidator,
     inputErrorManagementMiddleware,
-    registrationConfirmation
+    registrationConfirmation,
 );
 
 // Registration in the system. Email with confirmation code will be send to passed email address
@@ -39,7 +43,7 @@ authRouter.post(
     "/registration",
     userInputModelValidation,
     inputErrorManagementMiddleware,
-    registrationAttemptByUser
+    registrationAttemptByUser,
 );
 
 // Resend Registration confirmation email
@@ -47,17 +51,14 @@ authRouter.post(
     "/registration-email-resending",
     registrationResentConfirmationValidator,
     inputErrorManagementMiddleware,
-    resendRegistrationConfirmation
+    resendRegistrationConfirmation,
 );
 
 // Get information about current user
-authRouter.get(
-    "/me",
-    accessTokenGuard,
-    provideUserInfo
-);
+authRouter.get("/me", accessTokenGuard, provideUserInfo);
 
 // Generate new pair of access and refresh tokens (in cookie client must send correct refreshToken that will be revoked after refreshing)
-authRouter.post("/refresh-token");
+authRouter.post("/refresh-token", refreshTokenGuard, refreshTokenOnDemand);
 
-authRouter.post("/logout");
+// In cookie client must send correct refreshToken that will be revoked
+authRouter.post("/logout", refreshTokenGuard, logoutOnDemand);

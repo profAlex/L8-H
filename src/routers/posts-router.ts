@@ -23,7 +23,7 @@ import {
     CommentsSortListEnum,
     PostsSortListEnum,
 } from "./util-enums/fields-for-sorting";
-import { accessTokenGuard } from "./guard-middleware/token-guard";
+import { accessTokenGuard } from "./guard-middleware/access-token-guard";
 import { commentInputModelValidation } from "./validation-middleware/comment-input-model-validation";
 
 export const postsRouter = Router();

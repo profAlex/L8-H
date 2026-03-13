@@ -15,7 +15,7 @@ import {
     mailerService,
 } from "../adapters/email-sender/mailer-service";
 import { RotationPairToken } from "../adapters/verification/auth-token-rotation-pair";
-
+import { createTokenPair } from "../adapters/verification/utility-token-pairs-creation";
 
 export const authService = {
     async loginUser(
@@ -70,49 +70,62 @@ export const authService = {
             };
         }
 
-        // пробуем создать accessToken
-        const resCreatingAccessToken = await jwtService.createAccessToken({
-            userId: user.id,
-        });
-        if (!resCreatingAccessToken.data?.accessToken) {
-            console.error(resCreatingAccessToken.statusDescription);
+        // // пробуем создать accessToken
+        // const resCreatingAccessToken = await jwtService.createAccessToken({
+        //     userId: user.id,
+        // });
+        // if (!resCreatingAccessToken.data?.accessToken) {
+        //     console.error(resCreatingAccessToken.statusDescription);
+        //     return {
+        //         data: null,
+        //         statusCode: resCreatingAccessToken.statusCode,
+        //         statusDescription: resCreatingAccessToken.statusDescription,
+        //         errorsMessages: resCreatingAccessToken.errorsMessages,
+        //     };
+        // }
+        //
+        // // пробуем создать refreshToken
+        // const resCreatingRefreshToken = await jwtService.createRefreshToken({
+        //     userId: user.id,
+        // });
+        // if (!resCreatingRefreshToken.data?.refreshToken) {
+        //     console.error(resCreatingRefreshToken.statusDescription);
+        //     return {
+        //         data: null,
+        //         statusCode: resCreatingAccessToken.statusCode,
+        //         statusDescription: resCreatingAccessToken.statusDescription,
+        //         errorsMessages: resCreatingAccessToken.errorsMessages,
+        //     };
+        // }
+        //
+        // return {
+        //     data: {
+        //         accessToken: resCreatingAccessToken.data.accessToken,
+        //         refreshToken: resCreatingRefreshToken.data.refreshToken,
+        //         relatedUserId: user.id,
+        //     },
+        //     statusCode: HttpStatus.Ok,
+        //     statusDescription: "",
+        //     errorsMessages: [
+        //         {
+        //             field: "",
+        //             message: "",
+        //         },
+        //     ],
+        // };
+
+        const pairOfToken = await createTokenPair(user.id);
+        if (!pairOfToken.data) {
+            console.error(pairOfToken.statusDescription);
             return {
                 data: null,
-                statusCode: resCreatingAccessToken.statusCode,
-                statusDescription: resCreatingAccessToken.statusDescription,
-                errorsMessages: resCreatingAccessToken.errorsMessages,
+                statusCode: pairOfToken.statusCode,
+                statusDescription: pairOfToken.statusDescription,
+                errorsMessages: pairOfToken.errorsMessages,
             };
         }
 
-        // пробуем создать refreshToken
-        const resCreatingRefreshToken = await jwtService.createRefreshToken({
-            userId: user.id,
-        });
-        if (!resCreatingRefreshToken.data?.refreshToken) {
-            console.error(resCreatingRefreshToken.statusDescription);
-            return {
-                data: null,
-                statusCode: resCreatingAccessToken.statusCode,
-                statusDescription: resCreatingAccessToken.statusDescription,
-                errorsMessages: resCreatingAccessToken.errorsMessages,
-            };
-        }
-
-        return {
-            data: {
-                accessToken: resCreatingAccessToken.data.accessToken,
-                refreshToken: resCreatingRefreshToken.data.refreshToken,
-                relatedUserId: user.id,
-            },
-            statusCode: HttpStatus.Ok,
-            statusDescription: "",
-            errorsMessages: [
-                {
-                    field: "",
-                    message: "",
-                },
-            ],
-        };
+        return pairOfToken;
     },
 
     // пробуем зарегистрировать возвращенный от юзера код подтверждения
@@ -286,6 +299,7 @@ export const authService = {
         }
     },
 
+    // запрос на повторную отправку email с подтверждением регистрационного кода
     async resendConfirmRegistrationCode(
         sentData: ResentRegistrationConfirmationInput,
     ): Promise<CustomResult> {
@@ -329,6 +343,59 @@ export const authService = {
             };
         }
     },
+
+    // генерирует и возвращает два токена, помещает токен в блэклист
+    async refreshTokenOnDemand(
+        refreshToken: string,
+        userId: string,
+    ): Promise<CustomResult<RotationPairToken>> {
+        const pairOfToken = await createTokenPair(userId);
+        if (!pairOfToken.data) {
+            console.error(pairOfToken.statusDescription);
+            return {
+                data: null,
+                statusCode: pairOfToken.statusCode,
+                statusDescription: pairOfToken.statusDescription,
+                errorsMessages: pairOfToken.errorsMessages,
+            };
+        }
+
+        const ifSucessfullyAddedToBlackList =
+            await dataCommandRepository.addRefreshTokenInfoToBlackList({
+                refreshToken: refreshToken,
+                relatedUserId: userId,
+            });
+
+        if (!ifSucessfullyAddedToBlackList) {
+            console.error("Couldn't insert outdated refresh token into the blacklist");
+            return {
+                data: null,
+                statusCode: HttpStatus.InternalServerError,
+                statusDescription:
+                    "Couldn't insert outdated refresh token into the blacklist",
+                errorsMessages: [
+                    {
+                        field: "authService -> refreshTokenOnDemand -> if (!ifSucessfullyAddedToBlackList)",
+                        message: "Couldn't insert outdated refresh token into the blacklist",
+                    },
+                ],
+            };
+        }
+
+        return pairOfToken;
+    },
+
+
+    async logoutOnDemand(oldRefreshToken: string, relatedUserId: string,): Promise<boolean> {
+        const ifSucessfullyAddedToBlackList =
+            await dataCommandRepository.addRefreshTokenInfoToBlackList({
+                refreshToken: oldRefreshToken,
+                relatedUserId: relatedUserId,
+            });
+
+        return ifSucessfullyAddedToBlackList;
+    },
+
 
     // вспомогательная функция
     async checkUserCredentials(

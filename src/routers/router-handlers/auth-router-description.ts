@@ -37,13 +37,13 @@ export const attemptToLogin = async (
             .send({ errorsMessages: loginResult.errorsMessages });
     }
 
-    const { accessToken, refreshToken, relatedUserId} = loginResult.data;
+    const { accessToken, refreshToken, relatedUserId } = loginResult.data;
 
-    // !!!! здесь занесение в черный список пары {refreshToken, relatedUserId}
+    // !!!! здесь занесение в черный список refreshToken?? (ну или внутри authService.loginUser)
 
-    res.cookie(refreshToken, refreshToken, { httpOnly: true, secure: true } );
+    res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true });
 
-    return res.status(HttpStatus.Ok).send({accessToken: accessToken});
+    return res.status(HttpStatus.Ok).send({ accessToken: accessToken });
 };
 
 export const provideUserInfo = async (
@@ -136,4 +136,51 @@ export const resendRegistrationConfirmation = async (
     }
 
     return res.sendStatus(HttpStatus.NoContent);
+};
+
+export const refreshTokenOnDemand = async (req: Request, res: Response) => {
+    const oldRefreshToken = req.cookies.refreshToken;
+
+    // || {} введено для тех случаев если забыли например подключить cooke-parcer, тогда поля cookies в структуре req вообще будет отсутствовать и тогда undefined крашнет приложение
+    // if (!refreshToken)
+    // {
+    //     return res.status(HttpStatus.Unauthorized).json({
+    //         error: `Malformed refresh token, was not found.`,
+    //     });
+    // }
+
+    const pairOfTokens = await authService.refreshTokenOnDemand(
+        oldRefreshToken,
+        req.user!.userId!,
+    );
+    if (!pairOfTokens.data) {
+        console.error(
+            "Error description: ",
+            pairOfTokens?.statusDescription,
+            JSON.stringify(pairOfTokens.errorsMessages),
+        );
+
+        return res
+            .status(pairOfTokens.statusCode)
+            .send({ errorsMessages: pairOfTokens.errorsMessages });
+    }
+
+    const accessToken = pairOfTokens.data.accessToken;
+    const refreshToken = pairOfTokens.data.refreshToken;
+
+    res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true });
+    return res.status(HttpStatus.NoContent).send({ accessToken: accessToken });
+};
+
+export const logoutOnDemand = async (req: Request, res: Response) => {
+    const oldRefreshToken = req.cookies.refreshToken;
+
+    const logoutResult = await authService.logoutOnDemand(
+        oldRefreshToken,
+        req.user!.userId!,
+    );
+
+    return logoutResult
+        ? res.sendStatus(HttpStatus.NoContent)
+        : res.sendStatus(HttpStatus.Unauthorized);
 };

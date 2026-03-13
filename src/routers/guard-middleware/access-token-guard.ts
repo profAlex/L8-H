@@ -23,9 +23,9 @@ export const accessTokenGuard = async (
             error: `Field req.headers.authorization has improper format`,
         });
 
-    const sentToken = req.headers.authorization.split(" ")[1];
+    const sentAccessToken = req.headers.authorization.split(" ")[1];
     const payload: JwtPayloadType | null =
-        await jwtService.verifyAccessToken(sentToken);
+        await jwtService.verifyAccessToken(sentAccessToken);
 
     if (!payload)
         return res.status(HttpStatus.Unauthorized).json({

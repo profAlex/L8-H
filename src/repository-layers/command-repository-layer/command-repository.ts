@@ -1148,16 +1148,37 @@ export const dataCommandRepository = {
         }
     },
 
-
     // *****************************
     // методы для управления черным списком (black list) рефреш токенов (refresh tokens) пользователей
     // *****************************
-    async addRefreshTokenInfoToBlackList(refreshTokenInfo: RefreshTokenModel): Promise<boolean> {
-        return true;
+    async addRefreshTokenInfoToBlackList(
+        refreshTokenInfo: RefreshTokenModel,
+    ): Promise<boolean> {
+        try {
+            const result = await refreshTokensBlackListCollection.insertOne(
+                refreshTokenInfo ,
+            );
+            return !!result;
+        } catch (error) {
+            console.error("Unknown error during addRefreshTokenInfoToBlackList", error);
+            return false;
+        }
     },
 
-    async checkIfRefreshTokenInBlackList(refreshToken: string): Promise<boolean> {
-        return true;
+
+    async checkIfRefreshTokenInBlackList(
+        refreshToken: string,
+    ): Promise<boolean> {
+        try {
+            const result = await refreshTokensBlackListCollection.findOne(
+                { refreshToken: refreshToken },
+                { projection: { _id: 1 } },
+            );
+            return !!result;
+        } catch (error) {
+            console.error("Unknown error during checkIfRefreshTokenInBlackList", error);
+            return false;
+        }
     },
 
     // *****************************

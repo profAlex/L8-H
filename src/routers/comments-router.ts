@@ -9,7 +9,7 @@ import {
     getCommentById,
     updateCommentById,
 } from "./router-handlers/comment-router-description";
-import { accessTokenGuard } from "./guard-middleware/token-guard";
+import { accessTokenGuard } from "./guard-middleware/access-token-guard";
 
 export const commentsRouter = Router();
 
