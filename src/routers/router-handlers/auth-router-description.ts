@@ -169,7 +169,7 @@ export const refreshTokenOnDemand = async (req: Request, res: Response) => {
     const refreshToken = pairOfTokens.data.refreshToken;
 
     res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true });
-    return res.status(HttpStatus.NoContent).send({ accessToken: accessToken });
+    return res.status(HttpStatus.Ok).send({ accessToken: accessToken });
 };
 
 export const logoutOnDemand = async (req: Request, res: Response) => {
