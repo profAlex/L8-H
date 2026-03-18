@@ -158,12 +158,12 @@ export const jwtService = {
                 switch (error.name) {
                     case "TokenExpiredError":
                         console.warn(
-                            "Access JWT is expired. Date of expiration:",
+                            "Refresh JWT is expired. Date of expiration:",
                             (error as jwt.TokenExpiredError).expiredAt,
                         );
                         break;
                     default:
-                        console.warn("Error with Access JWT:", error.name, error.message);
+                        console.warn("Error with Refresh JWT:", error.name, error.message);
                 }
                 return null;
             } else {

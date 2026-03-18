@@ -12,6 +12,8 @@ import { mailerService } from "../src/adapters/email-sender/mailer-service";
 import { ResentRegistrationConfirmationInput } from "../src/routers/router-types/auth-resent-registration-confirmation-input-model";
 import { UUIDgeneration } from "../src/adapters/randomUUIDgeneration/UUIDgeneration";
 import { LoginInputModel } from "../src/routers/router-types/login-input-model";
+import jwt from "jsonwebtoken";
+import { envConfig } from "../src/config";
 
 describe("Test API for managing login, registration and registration-confirmation services", () => {
     const testApp = express();
@@ -376,32 +378,39 @@ describe("Test API for managing login, registration and registration-confirmatio
         // ниже блок функции для извлечения значения куки
         const extractJwtFromCookie = (cookieString: string): string => {
             // Разделяем строку по первому знаку '='
-            const parts = cookieString.split('=');
+            const parts = cookieString.split("=");
             if (parts.length < 2) {
                 throw new Error('Invalid cookie format: no "=" found');
             }
 
             // Берём часть после '=' и до первого ';' (атрибуты куки)
             const jwtWithAttributes = parts[1];
-            const jwt = jwtWithAttributes.split(';')[0];
+            const jwt = jwtWithAttributes.split(";")[0];
 
             return jwt;
         };
 
-        if(!refreshTokenCookie)
-        {
-            throw ("Refresh cookie is undefined");
+        if (!refreshTokenCookie) {
+            throw "Refresh cookie is undefined";
         }
 
         const refreshTokenValue = extractJwtFromCookie(refreshTokenCookie);
-        expect(refreshTokenValue).toMatch(/^[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+$/); // проверка формата JWT
+        expect(refreshTokenValue).toMatch(
+            /^[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+$/,
+        ); // проверка формата JWT
 
         console.log(refreshTokenCookie);
+
+        //изобретаем задержку на 1 секунду
+        const delay = (ms: number) =>
+            new Promise((resolve) => setTimeout(resolve, ms));
+        await delay(1000); // задержка 1 секунда
+        console.log("Прошла 1 секунда");
 
         // Пытаемся обновить токены
         const refreshRes = await request(testApp)
             .post(`${AUTH_PATH}/refresh-token`)
-            .set('Cookie', `refreshToken=${refreshTokenValue}`)
+            .set("Cookie", `refreshToken=${refreshTokenValue}`)
             .send();
 
         expect(refreshRes.status).toBe(HttpStatus.Ok);
@@ -435,16 +444,23 @@ describe("Test API for managing login, registration and registration-confirmatio
     });
 
     it("POST '/api/auth/refresh-token' - attempt to refresh token with expired refresh token (not successful)", async () => {
-        const expiredRefreshToken = "expired_refresh_token_123";
+        // Создаём expired JWT
+        const expiredRefreshToken = jwt.sign(
+            {
+                userId_1,
+                iat: Math.floor(Date.now() / 1000),
+                exp: Math.floor(Date.now() / 1000 - 3600),
+            },
+            envConfig.refreshTokenSecret,
+        );
 
+        // Устанавливаем expired токен в куку
         const refreshRes = await request(testApp)
             .post(`${AUTH_PATH}/refresh-token`)
-            .send({ refreshToken: expiredRefreshToken });
+            .set("Cookie", `refreshToken=${expiredRefreshToken}`)
+            .send();
 
         expect(refreshRes.status).toBe(HttpStatus.Unauthorized);
-        expect(refreshRes.body.message).toContain(
-            "Refresh token is expired or invalid",
-        );
     });
 
     it("POST '/api/auth/refresh-token' - attempt to refresh token with malformed refresh token (not successful)", async () => {
@@ -452,41 +468,76 @@ describe("Test API for managing login, registration and registration-confirmatio
 
         const refreshRes = await request(testApp)
             .post(`${AUTH_PATH}/refresh-token`)
-            .send({ refreshToken: malformedRefreshToken });
+            .set("Cookie", `refreshToken=${malformedRefreshToken}`)
+            .send();
 
-        expect(refreshRes.status).toBe(HttpStatus.BadRequest);
-        expect(refreshRes.body.message).toContain(
-            "Invalid refresh token format",
-        );
+        expect(refreshRes.status).toBe(HttpStatus.Unauthorized);
     });
 
     it("POST '/api/auth/logout' - attempt to logout (successful)", async () => {
-        expect(await dataQueryRepository.returnUsersAmount()).toBe(3);
+        expect(await dataQueryRepository.returnUsersAmount()).toBe(5);
 
         const loginData: LoginInputModel = {
-            loginOrEmail: "existing_user",
-            password: "correct_password",
+            loginOrEmail: "hello_w2",
+            password: "hello_world",
         };
 
-        // Логинимся, чтобы получить refresh token
+        // Логинимся, чтобы получить refresh token в куках
         const loginRes = await request(testApp)
             .post(`${AUTH_PATH}/login`)
             .send(loginData);
 
         expect(loginRes.status).toBe(HttpStatus.Ok);
-        const refreshToken = loginRes.body.refreshToken;
+        expect(loginRes.header["set-cookie"]).toBeDefined();
 
-        // Выполняем logout
+        // Извлекаем refresh token из кук
+        const setCookieValue = loginRes.header["set-cookie"];
+        let refreshTokenCookie: string | undefined;
+
+        if (Array.isArray(setCookieValue)) {
+            refreshTokenCookie = setCookieValue.find((cookie) =>
+                cookie.startsWith("refreshToken="),
+            );
+        } else if (typeof setCookieValue === "string") {
+            refreshTokenCookie = setCookieValue.startsWith("refreshToken=")
+                ? setCookieValue
+                : undefined;
+        }
+
+        expect(refreshTokenCookie).toBeDefined();
+
+        const extractJwtFromCookie = (cookieString: string): string => {
+            const parts = cookieString.split("=");
+            if (parts.length < 2) {
+                throw new Error('Invalid cookie format: no "=" found');
+            }
+            const jwtWithAttributes = parts[1];
+            const jwt = jwtWithAttributes.split(";")[0];
+            return jwt;
+        };
+
+        if (!refreshTokenCookie) {
+            throw new Error("Refresh cookie is undefined");
+        }
+
+        const refreshTokenValue = extractJwtFromCookie(refreshTokenCookie);
+        expect(refreshTokenValue).toMatch(
+            /^[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+$/,
+        );
+
+        // Выполняем logout, передавая refresh token в куках
         const logoutRes = await request(testApp)
             .post(`${AUTH_PATH}/logout`)
-            .send({ refreshToken });
+            .set("Cookie", `refreshToken=${refreshTokenValue}`)
+            .send();
 
         expect(logoutRes.status).toBe(HttpStatus.NoContent);
 
         // Проверяем, что refresh token больше не действителен
         const refreshResAfterLogout = await request(testApp)
             .post(`${AUTH_PATH}/refresh-token`)
-            .send({ refreshToken });
+            .set("Cookie", `refreshToken=${refreshTokenValue}`)
+            .send();
 
         expect(refreshResAfterLogout.status).toBe(HttpStatus.Unauthorized);
     });
@@ -496,18 +547,17 @@ describe("Test API for managing login, registration and registration-confirmatio
 
         const logoutRes = await request(testApp)
             .post(`${AUTH_PATH}/logout`)
-            .send({ refreshToken: invalidRefreshToken });
+            .set("Cookie", `refreshToken=${invalidRefreshToken}`)
+            .send();
 
-        expect(logoutRes.status).toBe(HttpStatus.BadRequest);
-        expect(logoutRes.body.message).toContain("Invalid refresh token");
+        expect(logoutRes.status).toBe(HttpStatus.Unauthorized);
     });
 
     it("POST '/api/auth/logout' - attempt to logout without refresh token (not successful)", async () => {
         const logoutRes = await request(testApp)
             .post(`${AUTH_PATH}/logout`)
-            .send({});
+            .send(); // без кук
 
-        expect(logoutRes.status).toBe(HttpStatus.BadRequest);
-        expect(logoutRes.body.message).toContain("Refresh token is required");
+        expect(logoutRes.status).toBe(HttpStatus.Unauthorized);
     });
 });

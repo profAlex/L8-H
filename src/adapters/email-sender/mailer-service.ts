@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { envConfig } from "../../config";
 
 
 export const emailExamples = {
@@ -25,12 +26,12 @@ export const mailerService = {
     ): Promise<boolean> {
 
         const transporter = nodemailer.createTransport({
-            host: "smtp.yandex.ru",
-            port: 465,
+            host: envConfig.mailHost,
+            port: envConfig.mailPort,
             secure: true, // использовать SSL
             auth: {
-                user: "geniusb198",
-                pass: "bxehtsazcuonvgug"
+                user: envConfig.mailLogin,
+                pass: envConfig.mailPass,
             }
         });
 

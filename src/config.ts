@@ -13,6 +13,12 @@ const DEFAULT_REFRESH_TOKEN_LIFETIME = "20"; // sec
 const DEFAULT_COOKIE_DOMAIN = "localhost";
 const DEFAULT_COOKIE_SECURE = true;
 
+const DEFAULT_MAIL_PORT = "";
+const DEFAULT_MAIL_HOST = "";
+const DEFAULT_MAIL_LOGIN = "";
+const DEFAULT_MAIL_PASS = "";
+
+
 // структура конфигурационных значений
 type Config = {
     appPort: number;
@@ -20,6 +26,10 @@ type Config = {
     refreshTokenSecret: string;
     accessTokenLifetime: number;
     refreshTokenLifetime: number;
+    mailPort: number;
+    mailHost: string;
+    mailLogin: string;
+    mailPass: string;
 };
 
 // парсинг значений
@@ -29,6 +39,10 @@ const getConfig = (): Config => {
     let refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
     let accessTokenLifetime = process.env.ACCESS_TOKEN_LIFETIME;
     let refreshTokenLifetime = process.env.REFRESH_TOKEN_LIFETIME;
+    let mailPort = process.env.MAIL_PORT;
+    let mailHost = process.env.MAIL_HOST;
+    let mailLogin = process.env.MAIL_LOGIN;
+    let mailPass = process.env.MAIL_PASS;
 
     // валидация
     if (!appPort) {
@@ -67,12 +81,45 @@ const getConfig = (): Config => {
         refreshTokenLifetime = DEFAULT_REFRESH_TOKEN_LIFETIME;
     }
 
+    if(!mailPort) {
+        console.warn(
+            `MAIL_PORT is not defined in .env! Applied default value: ${DEFAULT_MAIL_PORT}.`,
+        );
+        mailPort = DEFAULT_MAIL_PORT;
+    }
+
+    if(!mailHost) {
+        console.warn(
+            `MAIL_HOST is not defined in .env! Applied default value: ${DEFAULT_MAIL_HOST}.`,
+        );
+        mailHost = DEFAULT_MAIL_HOST;
+    }
+
+    if(!mailLogin) {
+        console.warn(
+            `MAIL_LOGIN is not defined in .env! Applied default value: ${DEFAULT_MAIL_LOGIN}.`,
+        );
+        mailLogin = DEFAULT_MAIL_LOGIN;
+    }
+
+    if(!mailPass) {
+        console.warn(
+            `MAIL_PASS is not defined in .env! Applied default value: ${DEFAULT_MAIL_PASS}.`,
+        );
+        mailPass = DEFAULT_MAIL_PASS;
+    }
+
+
     return {
         appPort: parseInt(appPort, 10),
         accessTokenSecret: accessTokenSecret,
         refreshTokenSecret: refreshTokenSecret,
         accessTokenLifetime: parseInt(accessTokenLifetime, 10),
         refreshTokenLifetime: parseInt(refreshTokenLifetime, 10),
+        mailPort: parseInt(mailPort,10),
+        mailHost: mailHost,
+        mailLogin: mailLogin,
+        mailPass: mailPass,
     };
 };
 
